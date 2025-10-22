@@ -9,19 +9,29 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+public function up(): void
     {
+        // Esta es la tabla que coincide con tu 'usuario'
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+            $table->id(); // Equivale a 'id_usuario SERIAL PRIMARY KEY'. Laravel prefiere 'id'
+            
+            // $table->string('name'); // <--- ¡Esta es la línea que eliminamos!
+
+            $table->string('email')->unique(); // Coincide con tu 'email'
+            $table->timestamp('email_verified_at')->nullable(); // Columna de Laravel para verificar email
+            
+            // Laravel espera que la columna se llame 'password' para la autenticación
+            $table->string('password'); // Equivale a tu 'password_hash'
+
+            // Coincide con tu ENUM 'rol_usuario'. Laravel lo manejará bien.
             $table->enum('role',['modulo', 'vendedor', 'admin'])->default('vendedor');
-            $table->rememberToken();
-            $table->timestamps();
+
+            $table->rememberToken(); // Columna de Laravel para la función "Recordarme"
+            $table->timestamps(); // Columnas 'created_at' y 'updated_at' de Laravel
         });
 
+        // Estas tablas son para el sistema de "Resetear Contraseña" y "Sesiones"
+        // Déjalas exactamente como están. Son necesarias para Laravel.
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
