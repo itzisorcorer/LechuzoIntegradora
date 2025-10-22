@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('ordenes', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
+            $table->enum('status', ['pendiente', 'confirmado', 'en_proceso', 'listo', 'completado', 'cancelado'])->default('pendiente');
         });
     }
 
