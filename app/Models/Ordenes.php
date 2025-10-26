@@ -30,7 +30,7 @@ class Ordenes extends Model
     }
     public function vendedor(): BelongsTo
     {
-        return $this->belongsTo(Vendedores::class, 'vendedor_id');
+        return $this->belongsTo(Vendedor::class, 'vendedor_id');
     }
 
     //estos son los items  (lineas de producto) de esta orden

@@ -15,7 +15,6 @@ class Productos extends Model
     use Notifiable, HasApiTokens, HasFactory;
     // atributos asignables de forma masiva
     protected $fillable = [
-        'vendedor_id',
         'categoria_id',
         'nombre',
         'descripcion',
@@ -31,7 +30,7 @@ class Productos extends Model
     ];
     public function vendedor(): BelongsTo
     {
-        return $this->belongsTo(Vendedores::class, 'vendedor_id');
+        return $this->belongsTo(Vendedor::class, 'vendedor_id');
     }
     public function categoria(): BelongsTo
     {

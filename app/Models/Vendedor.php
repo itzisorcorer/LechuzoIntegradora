@@ -8,10 +8,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class Vendedores extends Model
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Vendedor extends Model
 {
     //
     use Notifiable, HasApiTokens, HasFactory;
+
+    /** 
+    @var string
+
+    */
+    protected $table = 'vendedores';
     //Aqui se designan los atributos que podemos asignar en masa
     protected $fillable = [
         'user_id',
@@ -22,16 +30,18 @@ class Vendedores extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
-    public function productos(): BelongsTo
+
+    public function productos(): HasMany
     {
-        return $this->belongsTo(Productos::class, 'vendedor_id');
+        return $this->hasMany(Productos::class, 'vendedor_id');
     }
-    public function ordenes(): BelongsTo
+
+    public function ordenes(): HasMany
     {
-        return $this->belongsTo(Ordenes::class, 'vendedor_id');
+        return $this->hasMany(Ordenes::class, 'vendedor_id');
     }
-    public function calificaciones(): BelongsTo
+    public function calificaciones(): HasMany
     {
-        return $this->belongsTo(Calificaciones::class, 'vendedor_id');
+        return $this->hasMany(Calificaciones::class, 'vendedor_id');
     }
 }

@@ -50,7 +50,7 @@ class User extends Authenticatable
     }
     public function vendedor() : HasOne
     {
-        return $this->hasOne(Vendedores::class, 'user_id');
+        return $this->hasOne(Vendedor::class, 'user_id');
     }
     public function estudiante() : HasOne
     {
