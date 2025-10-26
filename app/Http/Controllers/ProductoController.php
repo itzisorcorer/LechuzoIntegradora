@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Productos;
+use Exception;
 use Illuminate\Http\Request;
 
 use App\Models\Producto;
 use App\Models\Categorias;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
@@ -17,7 +20,18 @@ class ProductoController extends Controller
      */
     public function index()
     {
-        //
+        //  'paginate()' sirve para no traer miles de registros a la vez.
+        // Usamos 'with()' para cargar las relaciones del vendedor y la categoría.
+        // Esto se llama "Eager Loading" (Carga Ansiosa).
+        try{
+            $productos = Productos::with(['vendedor.user', 'categoria'])->paginate(10);
+            return response()->json($productos, 200);
+        }catch(\Exception $e){
+            return response()->json([
+                'message' => 'Error al obtener los productos',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -93,22 +107,114 @@ class ProductoController extends Controller
      */
     public function show(string $id)
     {
-        //
+        //findOrFaill sirve para qque falle automaticamente si no encuentra el id
+        try{
+            $producto = Productos::with(['vendedor', 'categoria'])->findOrFail($id);
+        
+        
+        //devolver producto encontrado
+        return response()->json([$producto], 200);
+
+
+
+    }catch(\Illuminate\Database\Eloquent\ModelNotFoundException $e){
+        return response()->json([
+            'message' => 'Producto no encontrado',
+            'error' => $e->getMessage()
+        ], 404);
+    }catch(\Exception $e){
+        return response()->json([
+            'message' => 'Error al obtener el producto',
+            'error' => $e->getMessage()
+        ], 500);
     }
+
+}
+
+    
 
     /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, string $id)
     {
-        //
+        $user = Auth::user();
+        // Las reglas son similares a 'store', pero 'required' cambia a 'sometimes'.
+        // 'sometimes' significa: "si el campo está presente, valídalo".
+        $validator = Validator::make($request->all(), [
+            'nombre' => 'sometimes|required|string|max:50',
+            'descripcion' => 'sometimes|nullable|string',
+            'precio' => 'sometimes|required|numeric|min:0.01',
+            'categoria_id' => 'sometimes|required|integer|exists:categorias,id',
+            'cantidad_disponible' => 'sometimes|nullable|integer|min:0',
+            'url_imagen' => 'sometimes|nullable|string|url',
+            'disponible' => 'sometimes|nullable|boolean'
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        try{
+            //buscamos el producto
+            $producto = Productos::findOrFail($id);
+            if($user->role !== 'vendedor' || !$user->vendedor || $producto->vendedor_id !== $user->vendedor->id){
+                return response()->json([
+                    'message' => 'No autorizado. No eres el propietario de este producto.'
+                ], 403);
+
+            }
+            //actualizamos los campos si están presentes en la solicitud
+            $producto->update($request->all());
+
+            return response()->json([
+                'message' => 'Producto actualizado exitosamente.',
+                'producto' => $producto
+            ], 200);
+        }catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Producto no encontrado.'], 404);
+
+
+
+    }catch (Exception $e) {
+            return response()->json([
+                'message' => 'Error al actualizar el producto.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
-        //
+        $user = Auth::user();
+
+        try{
+            $producto = Productos::findOrFail($id);
+
+            //verificamos que el usuario sea el vendedor y que el id 
+            //del vendedor coincida con el del producto
+
+            if($user->role !== 'vendedor' || !$user->vendedor || $producto->vendedor_id !== $user->vendedor->id){
+                return response()->json([
+                    'message' => 'No autorizado. No eres el propietario de este producto.'
+                ], 403);
+            }
+            $producto->delete();
+            return response()->json([
+                'message' => 'Producto eliminado exitosamente.'
+            ], 200);
+    }catch(\Illuminate\Database\Eloquent\ModelNotFoundException $e){
+        //esta es la parte que se activa por FindOrFail
+        return response()->json([
+            'message' => 'Producto no encontrado.',
+        ], 404);
+    }catch(Exception $e){
+        return response()->json([
+            'message' => 'Error al eliminar el producto.',
+            'error' => $e->getMessage()
+        ], 500);
+
+        }
     }
 }
