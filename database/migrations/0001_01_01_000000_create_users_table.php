@@ -15,7 +15,6 @@ public function up(): void
         Schema::create('users', function (Blueprint $table) {
             $table->id(); // Equivale a 'id_usuario SERIAL PRIMARY KEY'. Laravel prefiere 'id'
             
-            // $table->string('name'); // <--- ¡Esta es la línea que eliminamos!
 
             $table->string('email')->unique(); // Coincide con tu 'email'
             $table->timestamp('email_verified_at')->nullable(); // Columna de Laravel para verificar email
@@ -24,7 +23,7 @@ public function up(): void
             $table->string('password'); // Equivale a tu 'password_hash'
 
             // Coincide con tu ENUM 'rol_usuario'. Laravel lo manejará bien.
-            $table->enum('role',['modulo', 'vendedor', 'admin'])->default('vendedor');
+            $table->enum('role',['modulo', 'vendedor', 'admin', 'estudiante'])->default('vendedor');
 
             $table->rememberToken(); // Columna de Laravel para la función "Recordarme"
             $table->timestamps(); // Columnas 'created_at' y 'updated_at' de Laravel
