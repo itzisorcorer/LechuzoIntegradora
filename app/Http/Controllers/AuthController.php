@@ -23,9 +23,9 @@ class AuthController extends Controller
         // 1. --- VALIDACIÓN ---
         // Validamos los datos de entrada
         $validator = Validator::make($request->all(), [
-            'email' => ['required', 'string', 'email', 'max:80', 'unique:users', 'in:vendedor,estudiante'],
+            'email' => ['required', 'string', 'email', 'max:80', 'unique:users'],
             'password' => ['required', 'string', Rules\Password::defaults(), 'confirmed'], // 'confirmed' busca 'password_confirmation'
-            'role' => ['required', 'string', 'in:vendedor,estudiante'], // Solo permitimos estos roles en el registro público
+            'role' => ['required', 'string', 'in:vendedor,estudiante,admin,modulo'], // Solo permitimos estos roles en el registro público
 
             // --- Campos de Perfil (Condicionales) ---
             //si es modulo o vendedor
