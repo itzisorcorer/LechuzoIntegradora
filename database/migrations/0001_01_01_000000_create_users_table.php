@@ -23,7 +23,7 @@ public function up(): void
             $table->string('password'); // Equivale a tu 'password_hash'
 
             // Coincide con tu ENUM 'rol_usuario'. Laravel lo manejará bien.
-            $table->enum('role',['modulo', 'vendedor', 'admin', 'estudiante'])->default('vendedor');
+            $table->enum('role',['admin', 'modulo', 'vendedor', 'estudiante'])->default('estudiante');
 
             $table->rememberToken(); // Columna de Laravel para la función "Recordarme"
             $table->timestamps(); // Columnas 'created_at' y 'updated_at' de Laravel

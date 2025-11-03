@@ -23,12 +23,15 @@ class AuthController extends Controller
         // 1. --- VALIDACIÓN ---
         // Validamos los datos de entrada
         $validator = Validator::make($request->all(), [
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'email' => ['required', 'string', 'email', 'max:80', 'unique:users', 'in:vendedor,estudiante'],
             'password' => ['required', 'string', Rules\Password::defaults(), 'confirmed'], // 'confirmed' busca 'password_confirmation'
             'role' => ['required', 'string', 'in:vendedor,estudiante'], // Solo permitimos estos roles en el registro público
 
             // --- Campos de Perfil (Condicionales) ---
-            'nombre_tienda' => ['required_if:role,vendedor', 'string', 'max:255'],
+            //si es modulo o vendedor
+            'nombre_tienda' => ['required_if:role,vendedor', 'required_if:role,modulo', 'string', 'max:255'],
+            
+            //si es estudiante
             'nombre_completo' => ['required_if:role,estudiante', 'string', 'max:255'],
             'matricula' => ['nullable', 'string', 'max:10', 'unique:estudiantes'],
         ]);
@@ -51,12 +54,15 @@ class AuthController extends Controller
             ]);
 
             // 4. --- CREAR EL PERFIL (TABLA 'VENDEDORES' O 'ESTUDIANTES') ---
-            if ($request->role === 'vendedor') {
+            if ($request->role === 'vendedor' || $request->role === 'modulo') {
+                
                 // Usamos la relación que definimos en el Modelo User
                 $user->vendedor()->create([
                     'nombre_tienda' => $request->nombre_tienda,
                 ]);
             } 
+            
+            //si es estudiante (comprador):
             elseif ($request->role === 'estudiante') {
                 // Usamos la relación que definimos en el Modelo User
                 $user->estudiante()->create([
