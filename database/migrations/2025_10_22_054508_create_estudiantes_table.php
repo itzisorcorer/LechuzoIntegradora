@@ -30,10 +30,13 @@ public function up(): void
             // 1. Renombramos 'matrícula' a 'matricula' (sin acento) como buena práctica.
             // 2. Agregamos ->nullable() porque tu SQL no especifica 'NOT NULL'.
             // 3. Agregamos el límite de 10 caracteres.
-            $table->string('matricula', 10)->unique()->nullable();
+            $table->string('matricula', 10)->unique();
 
             // Columnas 'created_at' y 'updated_at' de Laravel
             $table->timestamps();
+
+            //programa educativo
+            $table->foreignId('programa_educativo_id')->constrained('programas_educativos');
         });
     }
 

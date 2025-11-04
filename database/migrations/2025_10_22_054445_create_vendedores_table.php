@@ -32,6 +32,10 @@ public function up(): void
             // --- Columnas que ya tenías (¡están perfectas!) ---
             $table->enum('status', ['pendiente', 'aprobado', 'rechazado'])->default('pendiente');
             $table->timestamps(); // Esto crea 'created_at' y 'updated_at'
+
+            //matricula y programa educativo
+            $table->string('matricula', 10)->unique()->nullable(); // Única en Vendedores, pero opcional
+            $table->foreignId('programa_educativo_id')->nullable()->constrained('programas_educativos');
         });
     }
 

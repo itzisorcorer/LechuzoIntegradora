@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProductoController;
 
+use App\Models\ProgramaEducativo;
+
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -14,6 +16,11 @@ Route::get('/user', function (Request $request) {
 // Cualquiera puede acceder a estas
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+//esta es la de los programas educativos
+Route::get('/programas-educativos', function(){
+    return ProgramaEducativo::all();
+});
 
 // --- RUTAS PROTEGIDAS ---
 // Solo usuarios autenticados (con un token válido) pueden acceder a estas

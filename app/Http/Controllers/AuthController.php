@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules;
 
+use App\Rules\ValidaMatriculaPorPrograma;
+
 class AuthController extends Controller
 {
     /**
@@ -27,13 +29,34 @@ class AuthController extends Controller
             'password' => ['required', 'string', Rules\Password::defaults(), 'confirmed'], // 'confirmed' busca 'password_confirmation'
             'role' => ['required', 'string', 'in:vendedor,estudiante,admin,modulo'], // Solo permitimos estos roles en el registro público
 
+
+            //parte de la matricula y la regla personalizada
+            'programa_educativo_id' => ['required', 'integer', 'exists:programas_educativos,id'],
+            'matricula' => ['required',
+            'string',
+            'digits:10', new ValidaMatriculaPorPrograma,
+            // Reglas de unicidad 
+            // La matrícula debe ser única en 'estudiantes' SI el rol es 'estudiante'
+            'unique:estudiantes,matricula,NULL,id,role,estudiante',
+
+            // La matrícula debe ser única en 'vendedores' SI el rol es 'vendedor' o 'modulo'
+            'unique:vendedores,matricula,NULL,id,role,vendedor',
+            'unique:vendedores,matricula,NULL,id,role,modulo',
+        ],
+
+
+
+
+
+
+
             // --- Campos de Perfil (Condicionales) ---
             //si es modulo o vendedor
             'nombre_tienda' => ['required_if:role,vendedor', 'required_if:role,modulo', 'string', 'max:255'],
             
             //si es estudiante
             'nombre_completo' => ['required_if:role,estudiante', 'string', 'max:255'],
-            'matricula' => ['nullable', 'string', 'max:10', 'unique:estudiantes'],
+            //'matricula' => ['nullable', 'string', 'max:10', 'unique:estudiantes'],
         ]);
 
         if ($validator->fails()) {
@@ -59,8 +82,10 @@ class AuthController extends Controller
                 // Usamos la relación que definimos en el Modelo User
                 $user->vendedor()->create([
                     'nombre_tienda' => $request->nombre_tienda,
+                    'matricula' => $request->matricula,
+                    'programa_educativo_id' => $request->programa_educativo_id,
                 ]);
-            } 
+            }
             
             //si es estudiante (comprador):
             elseif ($request->role === 'estudiante') {
@@ -68,6 +93,7 @@ class AuthController extends Controller
                 $user->estudiante()->create([
                     'nombre_completo' => $request->nombre_completo,
                     'matricula' => $request->matricula,
+                    'programa_educativo_id' => $request->programa_educativo_id,
                 ]);
             }
 
