@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
 
 use App\Rules\ValidaMatriculaPorPrograma;
@@ -22,74 +23,71 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
-        // 1. --- VALIDACIÓN ---
-        // Validamos los datos de entrada
-        $validator = Validator::make($request->all(), [
-            'email' => ['required', 'string', 'email', 'max:80', 'unique:users'],
-            'password' => ['required', 'string', Rules\Password::defaults(), 'confirmed'], // 'confirmed' busca 'password_confirmation'
-            'role' => ['required', 'string', 'in:vendedor,estudiante,admin,modulo'], // Solo permitimos estos roles en el registro público
+        // --- INICIA LA CORRECCIÓN ---
 
-
-            //parte de la matricula y la regla personalizada
-            'programa_educativo_id' => ['required', 'integer', 'exists:programas_educativos,id'],
-            'matricula' => ['required',
+        // 1. Definimos las reglas base para 'matricula'
+        $matriculaRules = [
+            'required',
             'string',
-            'digits:10', new ValidaMatriculaPorPrograma,
-            // Reglas de unicidad 
-            // La matrícula debe ser única en 'estudiantes' SI el rol es 'estudiante'
-            'unique:estudiantes,matricula,NULL,id,role,estudiante',
+            'digits:10',
+            // 2. Ponemos tu regla personalizada (que depende de 'programa_educativo_id')
+            new ValidaMatriculaPorPrograma,
+        ];
 
-            // La matrícula debe ser única en 'vendedores' SI el rol es 'vendedor' o 'modulo'
-            'unique:vendedores,matricula,NULL,id,role,vendedor',
-            'unique:vendedores,matricula,NULL,id,role,modulo',
-        ],
+        // 3. Obtenemos el rol del request
+        $role = $request->input('role');
 
+        // 4. Añadimos la regla 'unique' correcta dinámicamente
+        if ($role === 'estudiante') {
+            // Si es estudiante, debe ser única en la tabla 'estudiantes'
+            $matriculaRules[] = Rule::unique('estudiantes', 'matricula');
+        
+        } elseif ($role === 'vendedor' || $role === 'modulo') {
+            // Si es vendedor o modulo, debe ser única en 'vendedores'
+            $matriculaRules[] = Rule::unique('vendedores', 'matricula');
+        }
 
-
-
-
-
-
-            // --- Campos de Perfil (Condicionales) ---
-            //si es modulo o vendedor
-            'nombre_tienda' => ['required_if:role,vendedor', 'required_if:role,modulo', 'string', 'max:255'],
+        // 5. Ahora sí, creamos el validador con la lista de reglas completa
+        $validator = Validator::make($request->all(), [
+            'role' => ['required', 'string', 'in:admin,modulo,vendedor,estudiante'],
+            'email' => ['required', 'string', 'email', 'max:80', 'unique:users'],
+            'password' => ['required', 'string', Rules\Password::defaults(), 'confirmed'],
             
-            //si es estudiante
+            // Ponemos la validación de programa PRIMERO
+            'programa_educativo_id' => ['required', 'integer', 'exists:programas_educativos,id'],
+            
+            // Pasamos nuestro array de reglas dinámicas
+            'matricula' => $matriculaRules,
+
+            // --- FIN DE LA CORRECCIÓN ---
+
+            'nombre_tienda' => ['required_if:role,vendedor', 'required_if:role,modulo', 'string', 'max:255'],
             'nombre_completo' => ['required_if:role,estudiante', 'string', 'max:255'],
-            //'matricula' => ['nullable', 'string', 'max:10', 'unique:estudiantes'],
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422); // 422 = Error de validación
+            return response()->json($validator->errors(), 422);
         }
 
         // 2. --- TRANSACCIÓN DE BASE DE DATOS ---
-        // Usamos una transacción para asegurarnos de que si algo falla, nada se guarde.
-        // O se crea el User Y el Perfil, o no se crea NADA.
+        // (El resto de tu función de crear el usuario está perfecta)
         try {
             DB::beginTransaction();
 
-            // 3. --- CREAR EL USUARIO (TABLA 'USERS') ---
             $user = User::create([
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'role' => $request->role,
             ]);
 
-            // 4. --- CREAR EL PERFIL (TABLA 'VENDEDORES' O 'ESTUDIANTES') ---
             if ($request->role === 'vendedor' || $request->role === 'modulo') {
-                
-                // Usamos la relación que definimos en el Modelo User
                 $user->vendedor()->create([
                     'nombre_tienda' => $request->nombre_tienda,
                     'matricula' => $request->matricula,
                     'programa_educativo_id' => $request->programa_educativo_id,
                 ]);
-            }
-            
-            //si es estudiante (comprador):
+            } 
             elseif ($request->role === 'estudiante') {
-                // Usamos la relación que definimos en el Modelo User
                 $user->estudiante()->create([
                     'nombre_completo' => $request->nombre_completo,
                     'matricula' => $request->matricula,
@@ -97,29 +95,26 @@ class AuthController extends Controller
                 ]);
             }
 
-            // Si todo salió bien, confirmamos los cambios en la BD
             DB::commit();
 
-            // 5. --- CREAR TOKEN Y ENVIAR RESPUESTA ---
-            // (Esto asume que tienes Laravel Sanctum instalado)
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
                 'message' => '¡Usuario registrado exitosamente!',
                 'access_token' => $token,
                 'token_type' => 'Bearer',
-                'user' => $user->load(['vendedor', 'estudiante']) // Devolvemos el usuario con su perfil
-            ], 201); // 201 = Creado
+                'user' => $user->load(['vendedor', 'estudiante']) 
+            ], 201); 
 
         } catch (\Exception $e) {
-            // Si algo falló, revertimos la transacción
             DB::rollBack();
             return response()->json([
                 'message' => 'Hubo un error en el registro.',
-                'error' => $e->getMessage() // En producción, quita getMessage()
-            ], 500); // 500 = Error de servidor
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
+
 
     /**
      * Inicia sesión (Login).

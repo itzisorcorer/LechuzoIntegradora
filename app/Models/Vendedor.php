@@ -25,6 +25,8 @@ class Vendedor extends Model
         'user_id',
         'nombre_tienda',
         'descripcion',
+        'matricula',
+        'programa_educativo_id',
     ];
     public function user(): BelongsTo
     {
