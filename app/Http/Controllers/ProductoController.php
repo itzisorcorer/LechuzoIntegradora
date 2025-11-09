@@ -217,4 +217,23 @@ class ProductoController extends Controller
 
         }
     }
+    //Esta función se encarga de devolver todos los productos del vendedor autenticado
+    public function misProductos(Request $request){
+        $user = $request->user();
+
+        if($user->role !== 'vendedor' && $user->role !== 'modulo'){
+            return response()->json(['message' => 'Acción no autorizada'], 403);
+        }
+        //obtener el perfil del vendedor
+        $vendedor = $user->vendedor;
+        if(!$vendedor){
+            return response()->json(['message' => 'Perfil no encontrado'], 404);
+
+        }
+        //a traves de las relaciones de los modelos, traemos los productos del vendedor 
+        $productos = $vendedor->productos()->with(['categoria', 'vendedor'])->orderBy('created_at', 'desc')->paginate(15);
+        return response()->json($productos);
+
+
+    }
 }

@@ -49,6 +49,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //Eliminar un producto
     Route::delete('/productos/{id}', [ProductoController::class, 'destroy']);
+
+    //esta ruta es para que los vendedores puedan obtener SUS productos
+    Route::get('/vendedor/productos', [ProductoController::class, 'misProductos']);
 });
 
 
