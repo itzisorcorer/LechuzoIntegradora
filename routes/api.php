@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProductoController;
 
 use App\Models\ProgramaEducativo;
+use App\Models\Categorias;
 
 
 Route::get('/user', function (Request $request) {
@@ -52,6 +53,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //esta ruta es para que los vendedores puedan obtener SUS productos
     Route::get('/vendedor/productos', [ProductoController::class, 'misProductos']);
+
+    //ruta para obtener las cateogias
+    Route::get('/categorias', function(){
+        return Categorias::all();
+    });
 });
 
 
