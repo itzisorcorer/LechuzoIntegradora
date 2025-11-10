@@ -91,7 +91,7 @@ class ProductoController extends Controller
                 $producto->save();
                 return response()->json([
                 'message' => 'Producto creado exitosamente',
-                'producto' => $producto
+                'producto' => $producto->load(['vendedor', 'categoria'])
             ], 201);
         }catch(\Exception $e){
             return response()->json([
@@ -170,7 +170,7 @@ class ProductoController extends Controller
 
             return response()->json([
                 'message' => 'Producto actualizado exitosamente.',
-                'producto' => $producto
+                'producto' => $producto->load(['vendedor', 'categoria'])
             ], 200);
         }catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['message' => 'Producto no encontrado.'], 404);
