@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Productos;
+use Attribute;
 use Exception;
 use Illuminate\Http\Request;
 
@@ -11,6 +12,8 @@ use App\Models\Categorias;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 
 class ProductoController extends Controller
@@ -43,7 +46,7 @@ class ProductoController extends Controller
         $user = Auth::user();
 
         //solo los vendedores pueden crear productos
-        if ($user->role !== 'vendedor') {
+        if ($user->role !== 'vendedor' && $user->role !== 'modulo') {
             return response()->json([
                 'message' => 'Solo los vendedores pueden crear productos.'
             ], 403);
@@ -56,7 +59,7 @@ class ProductoController extends Controller
             'precio' => 'required|numeric|min:0.01',
             'categoria_id' => 'required|integer|exists:categorias,id',
             'cantidad_disponible' => 'nullable|integer|min:0',
-            'url_imagen' => 'nullable|string|url' //validar que sea url
+            'imagen' => 'nullable|image|max:5120'
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -74,21 +77,30 @@ class ProductoController extends Controller
                 'message' => 'El usuario autenticado no tiene un perfil de vendedor.'
             ], 400);
         }
+        //logica para guardar la imagen si se proporciona
+        $pathDeImagen = null;
+        if($request->hasFile('imagen')){
+            // Lo guarda en 'storage/app/public/productos'
+            // Devuelve la ruta (ej: "productos/asdnf9asndf8.jpg")
+            $pathDeImagen = $request->file('imagen')->store('productos', 'public');
+        }
 
         //Crear el producto
         try{
-            $producto = $vendedor->productos()->make([
+            $producto = $vendedor->productos()->create([
                 'nombre' => $request->nombre,
                 'descripcion' => $request->descripcion,
                 'precio' => $request->precio,
                 'categoria_id' => $request->categoria_id,
                 'cantidad_disponible' => $request->cantidad_disponible ?? 0, // Si es nulo, pone 0
-                'url_imagen' => $request->url_imagen,
+                //imagen
+                'url_imagen' => $pathDeImagen,
+                'disponible' => $request->boolean('disponible', true)
             ]);
 
             // El método save() NO revisa $fillable, simplemente guarda el modelo
             // tal como está (con el 'vendedor_id' que le puso la relación).
-                $producto->save();
+                
                 return response()->json([
                 'message' => 'Producto creado exitosamente',
                 'producto' => $producto->load(['vendedor', 'categoria'])
@@ -113,7 +125,7 @@ class ProductoController extends Controller
         
         
         //devolver producto encontrado
-        return response()->json([$producto], 200);
+        return response()->json($producto, 200);
 
 
 
@@ -122,7 +134,7 @@ class ProductoController extends Controller
             'message' => 'Producto no encontrado',
             'error' => $e->getMessage()
         ], 404);
-    }catch(\Exception $e){
+    }catch(Exception $e){
         return response()->json([
             'message' => 'Error al obtener el producto',
             'error' => $e->getMessage()
@@ -147,8 +159,8 @@ class ProductoController extends Controller
             'precio' => 'sometimes|required|numeric|min:0.01',
             'categoria_id' => 'sometimes|required|integer|exists:categorias,id',
             'cantidad_disponible' => 'sometimes|nullable|integer|min:0',
-            'url_imagen' => 'sometimes|nullable|string|url',
-            'disponible' => 'sometimes|nullable|boolean'
+            'imagen' => 'nullable|image|max:5120',
+            'disponible' => 'sometimes|boolean'
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -166,7 +178,21 @@ class ProductoController extends Controller
 
             }
             //actualizamos los campos si están presentes en la solicitud
-            $producto->update($request->all());
+            //$producto->update($request->all());
+            $datosParaActualizar = $validator->validated();
+            //logica para actualizar la imagen si se proporciona
+            if($request->hasFile('imagen')){
+                //eliminar la imagen anterior si existe
+                $pathViejo = $producto->getAttributes()['url_imagen'] ?? null;
+                if($pathViejo){
+                    Storage::disk('public')->delete($pathViejo);
+                }
+                //guardar la nueva imagen
+                $pathNuevo = $request->file('imagen')->store('productos', 'public');
+                $datosParaActualizar['url_imagen'] = $pathNuevo;
+
+            }
+            $producto->update($datosParaActualizar);
 
             return response()->json([
                 'message' => 'Producto actualizado exitosamente.',
@@ -200,6 +226,16 @@ class ProductoController extends Controller
                     'message' => 'No autorizado. No eres el propietario de este producto.'
                 ], 403);
             }
+
+
+            //logica para eliminar la imagen del almacenamiento si existe
+            $pathDeImagen = $producto->getAttributes()['url_imagen'] ?? null;
+
+            if($pathDeImagen){
+                Storage::disk('public')->delete($pathDeImagen);
+            }
+
+
             $producto->delete();
             return response()->json([
                 'message' => 'Producto eliminado exitosamente.'

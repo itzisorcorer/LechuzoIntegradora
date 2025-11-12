@@ -9,6 +9,9 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Storage;
+
 class Productos extends Model
 {
     //
@@ -40,4 +43,12 @@ class Productos extends Model
     {
         return $this->hasMany(Items_Ordenes::class, 'producto_id');
     }
+    // Accesor para obtener la URL completa de la imagen
+    protected function urlImagen(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ? Storage::url($value) : null,
+        );
+    }
+
 }
