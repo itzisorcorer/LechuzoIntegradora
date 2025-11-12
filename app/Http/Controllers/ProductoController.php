@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use App\Models\Productos;
 use Attribute;
 use Exception;
-use Illuminate\Http\Request;
+
 
 use App\Models\Producto;
 use App\Models\Categorias;
