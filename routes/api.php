@@ -9,6 +9,7 @@ use App\Http\Controllers\ProductoController;
 use App\Models\ProgramaEducativo;
 use App\Models\Categorias;
 use App\Http\Controllers\OrdenController;
+use App\Http\Controllers\PagoController;
 
 
 Route::get('/user', function (Request $request) {
@@ -63,6 +64,8 @@ Route::middleware('auth:sanctum')->group(function () {
         return Categorias::all();
     
     });
+    //RUTA DE MERCADO PAGO
+    Route::post('/pagos/crear-preferencia/{id}', [PagoController::class, 'crearPreferenciaDePago']);
 });
 
 

@@ -67,6 +67,8 @@ class OrdenController extends Controller
             // --- ¡LA MAGIA! Agrupamos los productos por vendedor_id ---
             $itemsAgrupadosPorVendedor = $productosEnDB->groupBy('vendedor_id');
 
+            $ordenesCreadasIds = [];
+
             // 4. --- Creación de Órdenes (Una por Vendedor) ---
             
             // Iteramos sobre cada grupo (ej. 2 productos para Vendedor A, 1 para Vendedor B)
@@ -87,6 +89,8 @@ class OrdenController extends Controller
                     'status' => 'pendiente', // Estado inicial
                     'cantidad_total' => $cantidadTotalOrden,
                 ]);
+                //guardamos el id de la orden creada
+                $ordenesCreadasIds[] = $orden->id;
 
                 // c) Preparamos los "items" para esta orden
                 $itemsParaInsertar = [];
@@ -108,7 +112,12 @@ class OrdenController extends Controller
             // Si todo salió bien en el loop, confirmamos los cambios
             DB::commit();
 
-            return response()->json(['message' => '¡Pedido(s) creado(s) exitosamente!'], 201); // 201 = Creado
+            //devolvemos los ids de las ordenes creadas
+
+            return response()->json([
+                'message' => '¡Pedido(s) creado(s) exitosamente!',
+                'orden_ids' => $ordenesCreadasIds
+            ], 201); // 201 = Creado
 
         } catch (\Exception $e) {
             // Si algo falló (ej. un producto sin stock), revertimos TODO
