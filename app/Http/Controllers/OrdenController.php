@@ -128,5 +128,46 @@ class OrdenController extends Controller
             ], 500);
         }
     }
+    //Muestra el historial de ordenes del estudiaante autenticado
+    public function misOrdenes(Request $request)
+    {
+        $user = Auth::user();
+
+        // Solo los 'estudiantes' pueden ver sus órdenes
+        if ($user->role !== 'estudiante') {
+            return response()->json(['message' => 'Acción no autorizada.'], 403);
+        }
+        $estudiante = $user->estudiante;
+        if (!$estudiante) {
+            return response()->json(['message' => 'Perfil de estudiante no encontrado.'], 404);
+        }
+        
+        try {
+            //consultamos las ordenes del estudiante autenticado
+            $ordenes = Ordenes::where('estudiante_id', $estudiante->id)
+            
+
+
+                ->whereHas('itemsOrdenes') // Solo órdenes con items
+                ->whereHas('itemsOrdenes.producto')
+                ->whereHas('vendedor')
+                ->with([
+                    'vendedor', // ¿A quién le compré?
+                    'itemsOrdenes.producto.vendedor', // ¿Qué productos compré?
+                    'itemsOrdenes.producto.categoria', // ¿Qué productos compré?
+                ])
+                
+                ->orderBy('created_at', 'desc') 
+                ->paginate(10);
+
+            return response()->json($ordenes, 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al obtener las órdenes.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
     
 }

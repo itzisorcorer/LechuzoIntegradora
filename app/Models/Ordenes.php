@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany; 
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+use App\Models\Items_Ordenes;
+
 class Ordenes extends Model
 {
     //
@@ -43,5 +45,9 @@ class Ordenes extends Model
     public function pago(): HasOne
     {
         return $this->hasOne(Pagos::class, 'orden_id');
+    }
+    public function itemsOrdenes(): HasMany
+    {
+        return $this->hasMany(Items_Ordenes::class, 'orden_id');
     }
 }

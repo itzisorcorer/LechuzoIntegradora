@@ -66,6 +66,9 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     //RUTA DE MERCADO PAGO
     Route::post('/pagos/crear-preferencia/{id}', [PagoController::class, 'crearPreferenciaDePago']);
+
+    //RUTA PARA OBTENER LAS COMPRAS DEL USUARIO AUTENTICADO
+    Route::get('/estudiante/ordenes', [OrdenController::class, 'misOrdenes']);
 });
 
 
