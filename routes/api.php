@@ -69,6 +69,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //RUTA PARA OBTENER LAS COMPRAS DEL USUARIO AUTENTICADO
     Route::get('/estudiante/ordenes', [OrdenController::class, 'misOrdenes']);
+
+    //ruta para que e vendedor pueda ver sus ventas (u ordenes)
+    Route::get('/vendedor/ordenes', [OrdenController::class, 'misVentas']);
 });
 
 

@@ -169,5 +169,39 @@ class OrdenController extends Controller
             ], 500);
         }
     }
+    /**
+     * Muestra las ventas recibidas por el vendedor autenticado.
+     * (GET /api/vendedor/ordenes)
+     */
+    public function misVentas(Request $request)
+    {
+        $user = Auth::user();
+        if($user->role !== 'vendedor' && $user->role !== 'modulo'){
+            return response()->json(['message' => 'Acción no autorizada.'], 403);
+        }
+
+        $vendedor = $user->vendedor;
+        if(!$vendedor){
+            return response()->json(['message' => 'Perfil de vendedor no encontrado.'], 404);
+        }
+        try {
+            //consulta
+            $ventas = Ordenes::where('vendedor_id', $vendedor->id)
+            ->whereHas('itemsOrdenes.producto')
+            ->whereHas('vendedor')
+            ->with([
+                'vendedor', // vendedor de la orden
+                'itemsOrdenes.producto.vendedor', // vendedor del producto
+                'itemsOrdenes.producto.categoria', // categoria del producto
+            ]) ->orderBy('created_at', 'desc')->paginate(10);
+            return response()->json($ventas, 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al obtener las ventas.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
     
 }
