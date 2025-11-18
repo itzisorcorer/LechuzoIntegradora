@@ -10,6 +10,7 @@ use App\Models\ProgramaEducativo;
 use App\Models\Categorias;
 use App\Http\Controllers\OrdenController;
 use App\Http\Controllers\PagoController;
+use App\Http\Controllers\VendedorController;
 
 
 Route::get('/user', function (Request $request) {
@@ -72,6 +73,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //ruta para que e vendedor pueda ver sus ventas (u ordenes)
     Route::get('/vendedor/ordenes', [OrdenController::class, 'misVentas']);
+
+    //Ruta para actualizar el estado de una orden (vendedor)
+    Route::put('/vendedor/ordenes/{id}', [OrdenController::class, 'updateStatus']);
+
+    //editar datos del vendedor:
+    Route::get('/vendedor/perfil', [VendedorController::class, 'show']);
+    Route::put('/vendedor/perfil', [VendedorController::class, 'update']);
 });
 
 

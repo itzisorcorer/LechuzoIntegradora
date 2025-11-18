@@ -203,5 +203,47 @@ class OrdenController extends Controller
             ], 500);
         }
     }
+    //Actualiza el estado de una orden (vendedor, solo para el vendedor dueño)
+    //PUT /api/vendedor/ordenes/{id}
+    public function updateStatus(Request $request, $id)
+    {
+        $user = Auth::user();
+        if($user->role !== 'vendedor' && $user->role !== 'modulo'){
+            return response()->json(['message' => 'Acción no autorizada.'], 403);
+
+        }
+        //status dentro de los enum
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|string|in:pendiente,confirmado,en_progreso,listo,completado,cancelado',
+        ]);
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+        try {
+            //buscamos la orden
+            $orden = Ordenes::findOrFail($id);
+            
+            //verificar que esta orden le pertence al vendedor autenticado
+            if($orden->vendedor_id !== $user->vendedor->id){
+                return response()->json(['message' => 'No puedes modificar una orden que no es tuya.'], 403);
+
+            }
+            //actualizamos el status
+            $orden->update(['status' => $request->status]);
+            
+            return response()->json([
+                'message' => 'Estatus actualizado exitosamente.',
+                'orden' => $orden
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Orden no encontrada.'], 404);
+        }catch(\Exception $e){
+            return response()->json([
+                'message' => 'Error al actualizar el estatus de la orden.',
+                'error' => $e->getMessage()
+            ], 500);
+
+        }
+    }
     
 }

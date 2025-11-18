@@ -24,7 +24,7 @@ class Vendedor extends Model
     protected $fillable = [
         'user_id',
         'nombre_tienda',
-        'descripcion',
+        'description',
         'matricula',
         'programa_educativo_id',
     ];
