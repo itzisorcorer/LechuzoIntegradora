@@ -11,12 +11,17 @@ use App\Models\Categorias;
 use App\Http\Controllers\OrdenController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\VendedorController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+
+
+
 
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 // --- RUTAS DE AUTENTICACIÓN PÚBLICAS ---
+//--- RUTAS PÚBLICAS ---
 // Cualquiera puede acceder a estas
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -25,6 +30,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/programas-educativos', function(){
     return ProgramaEducativo::all();
 });
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
+
+
 
 // --- RUTAS PROTEGIDAS ---
 // Solo usuarios autenticados (con un token válido) pueden acceder a estas
