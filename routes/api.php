@@ -57,7 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/productos/{id}', [ProductoController::class, 'show']);
 
     //Actualizar un producto existente
-    Route::post('/productos/{id}', [ProductoController::class, 'update']);
+    Route::put('/productos/{id}', [ProductoController::class, 'update']);
 
     //Eliminar un producto
     Route::delete('/productos/{id}', [ProductoController::class, 'destroy']);

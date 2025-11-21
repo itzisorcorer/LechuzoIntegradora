@@ -191,6 +191,7 @@ class OrdenController extends Controller
             ->whereHas('vendedor')
             ->with([
                 'vendedor', // vendedor de la orden
+                'estudiante', // estudiante que hizo la compra
                 'itemsOrdenes.producto.vendedor', // vendedor del producto
                 'itemsOrdenes.producto.categoria', // categoria del producto
             ]) ->orderBy('created_at', 'desc')->paginate(10);
