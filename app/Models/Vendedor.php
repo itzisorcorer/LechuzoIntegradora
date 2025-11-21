@@ -9,6 +9,9 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Storage;
+
 
 class Vendedor extends Model
 {
@@ -27,7 +30,14 @@ class Vendedor extends Model
         'description',
         'matricula',
         'programa_educativo_id',
+        'url_foto',
     ];
+    public function urlFoto(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ? Storage::url($value) : null,
+        );
+    }
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');

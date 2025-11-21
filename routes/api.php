@@ -12,6 +12,7 @@ use App\Http\Controllers\OrdenController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\VendedorController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\EstudianteController;
 
 
 
@@ -88,6 +89,10 @@ Route::middleware('auth:sanctum')->group(function () {
     //editar datos del vendedor:
     Route::get('/vendedor/perfil', [VendedorController::class, 'show']);
     Route::put('/vendedor/perfil', [VendedorController::class, 'update']);
+
+    //para subir la foto de perfil del estudiante
+    Route::get('/estudiante/perfil', [EstudianteController::class, 'show']);
+    Route::put('/estudiante/perfil', [EstudianteController::class, 'update']);
 });
 
 

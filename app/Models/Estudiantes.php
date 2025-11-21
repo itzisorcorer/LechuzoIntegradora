@@ -9,6 +9,8 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Storage;
 class Estudiantes extends Model
 {
     //
@@ -21,7 +23,14 @@ class Estudiantes extends Model
         'nombre_completo',
         'matricula',
         'programa_educativo_id',
+        'url_foto',
     ];
+    public function urlFoto(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ? Storage::url($value) : null,
+        );
+    }
 
     public function user(): BelongsTo
     {
