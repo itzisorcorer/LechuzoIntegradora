@@ -35,8 +35,8 @@ return [
         ],
     ],
     'mercadopago' => [
-        'token' => env('MP_ACCESS_TOKEN'),
-        'public_key' => env('MP_PUBLIC_KEY'),
+        'token' => env('MP_ACCESS_TOKEN', 'APP_USR-3948019522472949-111500-6ac05f263f3df8b657112ca26e30d609-2991324502'),
+        'public_key' => env('MP_PUBLIC_KEY', 'APP_USR-3ff61b72-522b-48d6-8f50-c8de39f7c832'),
     ],
 
 ];
