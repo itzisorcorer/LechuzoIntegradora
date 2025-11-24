@@ -33,7 +33,7 @@ Route::get('/programas-educativos', function(){
 });
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
 
-
+Route::post('/webhooks/mercadopago', [PagoController::class, 'recibirWebhook']);
 
 // --- RUTAS PROTEGIDAS ---
 // Solo usuarios autenticados (con un token válido) pueden acceder a estas

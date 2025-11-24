@@ -8,12 +8,15 @@ use Illuminate\Support\Facades\DB;
 use MercadoPago\SDK;
 use MercadoPago\Resources\Preference;
 use MercadoPago\Resources\Item;
-use MercadoPago\MercadoPagoConfig; // <-- ¡Asegúrate de importar este!
-use MercadoPago\Client\Preference\PreferenceClient; // <-- ¡Y este!
-use MercadoPago\Exceptions\MPApiException; // <-- ¡Y este!
+use MercadoPago\MercadoPagoConfig;
+use MercadoPago\Client\Preference\PreferenceClient; 
+use MercadoPago\Exceptions\MPApiException; 
+use MercadoPago\Client\Payments\PaymentsClient;
+use Illuminate\Support\Facades\Log;
 
 use App\Models\Ordenes;
 use App\Models\Pagos;
+use Exception;
 
 class PagoController extends Controller
 {
@@ -92,4 +95,53 @@ class PagoController extends Controller
             return response()->json(['message' => 'Error al crear la preferencia de pago', 'error' => $e->getMessage()], 500);
         }
     }
+    public function recibirWebhook(Request $request){
+        //validar que ses evento de pago
+        //SE VALIDA TYPE Y TOPIC, ya que MP usa los dos depende de la versión
+        $topic = $request->input('topic') ?? $request->input('type');
+        $id = $request->input('id') ?? $request->input('data.id');
+
+        if($topic !== 'payment' || empty($id)){
+            //si no es un evento de pago, responder con 200 para que MP no insista
+            return response()->json(['status' => 'ignored'], 200);
+        }
+        try {
+            // consultar el status real de MP, es necesario verificar el ID
+            $client = new PaymentsClient();
+            $payment = $client->get($id);
+
+            //obtener id
+            $ordenId = $payment->external_reference;
+            $status = $payment->status;
+
+            //actualizar la orden local
+            $orden = Ordenes::find($ordenId);
+            if($orden){
+                if($status === 'approved'){
+                    $orden->status = 'pagado';
+                    $orden->save();
+
+                    //actualizar el pago en tabla Pagos
+                    $pago = Pagos::where('orden_id', $ordenId)->first();
+                    if($pago){ $pago->update(['status' => 'pagado', 'id_transaccion' => $id]); }
+            }
+            else if ($status === 'rejected' || $status === 'cancelled'){
+                $orden->status = 'cancelado';
+                $orden->save();
+
+                //actualizar el pago en tabla Pagos
+                $pago = Pagos::where('orden_id', $ordenId)->first();
+                if($pago){ $pago->update(['status' => 'cancelado', 'id_transaccion' => $id]); }
+
+            }
+            return response()->json(['status' => 'success'], 200);
+            }
+        } catch (Exception $e) {
+            //error para poder verlo en railway si falla
+            Log::error('Error al procesar webhook de Mercado Pago: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+
+    }
+
 }
