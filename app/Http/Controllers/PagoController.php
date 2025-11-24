@@ -11,7 +11,7 @@ use MercadoPago\Resources\Item;
 use MercadoPago\MercadoPagoConfig;
 use MercadoPago\Client\Preference\PreferenceClient; 
 use MercadoPago\Exceptions\MPApiException; 
-use MercadoPago\Client\Payments\PaymentsClient;
+use MercadoPago\Client\Payment\PaymentClient;
 use Illuminate\Support\Facades\Log;
 
 use App\Models\Ordenes;
@@ -28,7 +28,7 @@ class PagoController extends Controller
 
         if (empty($accessToken)) {
             // Si esto falla, ¡es porque no guardaste el config/services.php!
-            throw new \Exception('El Access Token de Mercado Pago no está configurado en config/services.php');
+            throw new Exception('El Access Token de Mercado Pago no está configurado en config/services.php');
         }
 
         // Usamos la inicialización V3 (la que ya tenías)
@@ -91,57 +91,59 @@ class PagoController extends Controller
             return response()->json(['message' => 'Orden no encontrada'], 404);
         } catch (MPApiException $e) { 
             return response()->json(['message' => 'Error de Mercado Pago', 'error' => $e->getApiResponse()->getContent()], 500);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['message' => 'Error al crear la preferencia de pago', 'error' => $e->getMessage()], 500);
         }
     }
-    public function recibirWebhook(Request $request){
-        //validar que ses evento de pago
-        //SE VALIDA TYPE Y TOPIC, ya que MP usa los dos depende de la versión
+public function recibirWebhook(Request $request)
+    {
+        // 1. Log para saber que al menos llegó la petición
+        Log::info('Webhook recibido: ' . json_encode($request->all()));
+
         $topic = $request->input('topic') ?? $request->input('type');
         $id = $request->input('id') ?? $request->input('data.id');
 
-        if($topic !== 'payment' || empty($id)){
-            //si no es un evento de pago, responder con 200 para que MP no insista
+        if ($topic !== 'payment' || empty($id)) {
             return response()->json(['status' => 'ignored'], 200);
         }
+
         try {
-            // consultar el status real de MP, es necesario verificar el ID
-            $client = new PaymentsClient();
+            // --- CORRECCIÓN DE SEGURIDAD ---
+            // Aseguramos que el SDK tenga el token antes de usarlo
+            $token = config('services.mercadopago.token');
+            if(empty($token)) {
+                throw new Exception('Token de MP no configurado en el servidor.');
+            }
+            MercadoPagoConfig::setAccessToken($token);
+            // -------------------------------
+
+            $client = new PaymentClient();
             $payment = $client->get($id);
 
-            //obtener id
+            // Log para depurar qué responde MP
+            Log::info('Pago consultado MP Estado: ' . $payment->status);
+
             $ordenId = $payment->external_reference;
             $status = $payment->status;
 
-            //actualizar la orden local
-            $orden = Ordenes::find($ordenId);
-            if($orden){
-                if($status === 'approved'){
+            if ($status === 'approved') {
+                $orden = Ordenes::find($ordenId);
+                if ($orden) {
                     $orden->status = 'pagado';
                     $orden->save();
-
-                    //actualizar el pago en tabla Pagos
-                    $pago = Pagos::where('orden_id', $ordenId)->first();
-                    if($pago){ $pago->update(['status' => 'pagado', 'id_transaccion' => $id]); }
+                    Log::info("Orden #$ordenId actualizada a PAGADO.");
+                } else {
+                    Log::warning("Orden #$ordenId no encontrada en BD.");
+                }
             }
-            else if ($status === 'rejected' || $status === 'cancelled'){
-                $orden->status = 'cancelado';
-                $orden->save();
 
-                //actualizar el pago en tabla Pagos
-                $pago = Pagos::where('orden_id', $ordenId)->first();
-                if($pago){ $pago->update(['status' => 'cancelado', 'id_transaccion' => $id]); }
-
-            }
             return response()->json(['status' => 'success'], 200);
-            }
-        } catch (Exception $e) {
-            //error para poder verlo en railway si falla
-            Log::error('Error al procesar webhook de Mercado Pago: ' . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-        }
 
+        } catch (\Exception $e) {
+            // IMPORTANTE: Devolvemos JSON para evitar que Laravel intente renderizar HTML y explote
+            Log::error('Error Webhook CRÍTICO: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
 }
