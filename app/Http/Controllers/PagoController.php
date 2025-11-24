@@ -57,9 +57,9 @@ class PagoController extends Controller
             $preferenceRequest = [
                 "items" => [$item],
                 "back_urls" => [
-                    "success" => "https.tu-app.com/pago-exitoso",
-                    "failure" => "https.tu-app.com/pago-fallido",
-                    "pending" => "https.tu-app.com/pago-pendiente"
+                    "success" => "lechuzopay://callback?status=success",
+                    "failure" => "lechuzopay://callback?status=failure",
+                    "pending" => "lechuzopay://callback?status=pending"
                 ],
                 "auto_return" => "approved",
                 "external_reference" => $orden->id,
