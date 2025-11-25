@@ -8,15 +8,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 
 use App\Models\User;
 
 class ForgotPasswordController extends Controller
 {
-    // 1. Enviar el Código
     public function sendResetLinkEmail(Request $request)
     {
+        // 1. Validar email
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',
         ]);
@@ -26,44 +28,58 @@ class ForgotPasswordController extends Controller
         }
 
         $email = $request->email;
-        // Generamos un código simple de 6 dígitos
         $codigo = rand(100000, 999999);
 
-        // Guardamos/Actualizamos en la tabla password_reset_tokens
-        // Nota: Guardamos el código tal cual (sin Hash) para validación simple numérica
+        // 2. Guardar Token en BD
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $email],
             ['token' => $codigo, 'created_at' => now()]
         );
 
         try {
-            // ✅ EL TRUCO: Usamos Mail::raw para enviar texto plano. Cero Vite, Cero errores.
-            Mail::raw("Hola, tu código de recuperación para Lechuzo es: $codigo\n\nIngrésalo en la App para restablecer tu contraseña.", function ($message) use ($email) {
-                $message->to($email)
-                        ->subject('Código de Recuperación - Lechuzo');
-            });
+            // 3. ENVIAR CORREO VÍA API HTTP (Resend)
+            // Usamos la llave que ya pusiste en MAIL_PASSWORD para no crear variables nuevas
+            $apiKey = env('MAIL_PASSWORD'); 
 
-            return response()->json(['message' => '¡Código enviado! Revisa tu correo.'], 200);
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json'
+            ])->post('https://api.resend.com/emails', [
+                'from' => 'onboarding@resend.dev',
+                'to' => [$email],
+                'subject' => 'Código de Recuperación - Lechuzo',
+                'html' => "<p>Hola, tu código de recuperación es: <strong>$codigo</strong><br><br>Ingrésalo en la App.</p>"
+            ]);
+
+            // Verificar si Resend aceptó el correo
+            if ($response->successful()) {
+                return response()->json(['message' => '¡Código enviado! Revisa tu correo.'], 200);
+            } else {
+                // Si falla, logueamos qué dijo Resend
+                Log::error('Error API Resend: ' . $response->body());
+                return response()->json(['message' => 'Error al enviar el correo.'], 500);
+            }
 
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Error al enviar correo: ' . $e->getMessage()], 500);
+            Log::error('Error Exception Mail: ' . $e->getMessage());
+            return response()->json(['message' => 'Error interno al procesar correo.'], 500);
         }
     }
 
-    // 2. Validar Código y Cambiar Contraseña (Paso 2)
+    // ... (Mantén tu función resetPassword igual, esa no cambia) ...
     public function resetPassword(Request $request)
     {
+        // (Pega aquí el mismo código de resetPassword que te di en la respuesta anterior)
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',
-            'codigo' => 'required', // El token numérico
-            'password' => 'required|min:6|confirmed', // password y password_confirmation
+            'codigo' => 'required',
+            'password' => 'required|min:6|confirmed',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['message' => 'Datos inválidos', 'errors' => $validator->errors()], 422);
         }
 
-        // Verificamos si el código es correcto
         $registro = DB::table('password_reset_tokens')
             ->where('email', $request->email)
             ->first();
@@ -72,14 +88,12 @@ class ForgotPasswordController extends Controller
             return response()->json(['message' => 'El código es incorrecto o ha expirado.'], 400);
         }
 
-        // ¡Todo bien! Cambiamos la contraseña
         $user = User::where('email', $request->email)->first();
         $user->password = Hash::make($request->password);
         $user->save();
 
-        // Borramos el código usado
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 
-        return response()->json(['message' => '¡Contraseña restablecida con éxito! Ya puedes iniciar sesión.'], 200);
+        return response()->json(['message' => '¡Contraseña restablecida con éxito!'], 200);
     }
 }
