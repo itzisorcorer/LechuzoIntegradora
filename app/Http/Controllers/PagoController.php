@@ -139,9 +139,15 @@ public function recibirWebhook(Request $request)
 
             return response()->json(['status' => 'success'], 200);
 
-        } catch (\Exception $e) {
+        } catch (MPApiException $e) {
             // IMPORTANTE: Devolvemos JSON para evitar que Laravel intente renderizar HTML y explote
-            Log::error('Error Webhook CRÍTICO: ' . $e->getMessage());
+            $response = $e->getApiResponse();
+            $content = $response ? $response->getContent() : 'Sin contenido';
+            Log::error('Error Webhook CRÍTICO: ' . json_encode($content));
+            return response()->json(['error' => 'ERROR API MP', 'details' => $content], 500);
+        }catch (Exception $e) {
+            // IMPORTANTE: Devolvemos JSON para evitar que Laravel intente renderizar HTML y explote
+            Log::error('Error Webhook genérico: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
