@@ -129,9 +129,10 @@ public function recibirWebhook(Request $request)
             if ($status === 'approved') {
                 $orden = Ordenes::find($ordenId);
                 if ($orden) {
-                    $orden->status = 'pagado';
+                    // ✅ CORRECCIÓN: Usamos un valor válido del ENUM
+                    $orden->status = 'confirmado'; 
                     $orden->save();
-                    Log::info("Orden #$ordenId actualizada a PAGADO.");
+                    Log::info("Orden #$ordenId actualizada a CONFIRMADO (Pago Aprobado).");
                 } else {
                     Log::warning("Orden #$ordenId no encontrada en BD.");
                 }
