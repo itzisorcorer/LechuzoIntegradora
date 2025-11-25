@@ -31,7 +31,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/programas-educativos', function(){
     return ProgramaEducativo::all();
 });
+//recuperar contraseña
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
+Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword']);
 
 Route::post('/webhooks/mercadopago', [PagoController::class, 'recibirWebhook']);
 
