@@ -66,6 +66,7 @@ class PagoController extends Controller
                 ],
                 "auto_return" => "approved",
                 "external_reference" => $orden->id,
+                "notification_url" => "https://lechuzointegradora-production.up.railway.app/api/webhooks/mercadopago",
             ];
             $client = new PreferenceClient();
             $preference = $client->create($preferenceRequest);
