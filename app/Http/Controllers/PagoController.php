@@ -101,8 +101,8 @@ public function recibirWebhook(Request $request)
         // 1. Log para saber que al menos llegó la petición
         Log::info('Webhook recibido: ' . json_encode($request->all()));
 
-        $topic = $request->input('topic') ?? $request->input('type');
-        $id = $request->input('id') ?? $request->input('data.id');
+        $topic = $request->input('type') ?? $request->input('topic');
+        $id = $request->input('data.id') ?? $request->input('input');
 
         if ($topic !== 'payment' || empty($id)) {
             return response()->json(['status' => 'ignored'], 200);
