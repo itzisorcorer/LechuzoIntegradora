@@ -13,6 +13,7 @@ use App\Http\Controllers\PagoController;
 use App\Http\Controllers\VendedorController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\EstudianteController;
+use App\Http\Controllers\ChatController;
 
 
 
@@ -36,6 +37,7 @@ Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLink
 Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword']);
 
 Route::post('/webhooks/mercadopago', [PagoController::class, 'recibirWebhook']);
+
 
 // --- RUTAS PROTEGIDAS ---
 // Solo usuarios autenticados (con un token válido) pueden acceder a estas
@@ -95,6 +97,12 @@ Route::middleware('auth:sanctum')->group(function () {
     //para subir la foto de perfil del estudiante
     Route::get('/estudiante/perfil', [EstudianteController::class, 'show']);
     Route::put('/estudiante/perfil', [EstudianteController::class, 'update']);
+
+        // RUTAS DE MENSAJERÍA
+    Route::post('/chats/iniciar', [ChatController::class, 'iniciarChat']); // Iniciar conversación
+    Route::get('/chats', [ChatController::class, 'misChats']); // Ver lista de conversaciones
+    Route::get('/chats/{id}/mensajes', [ChatController::class, 'obtenerMensajes']); // Ver mensajes de un chat
+    Route::post('/chats/{id}/mensajes', [ChatController::class, 'enviarMensaje']); // Enviar mensaje
 });
 
 
